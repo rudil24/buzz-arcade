@@ -50,6 +50,55 @@ def draw_text(text, font, color, surface, x, y):
     textrect = textobj.get_rect(center=(x, y))
     surface.blit(textobj, textrect)
 
+SCORES_FILE = "highscores.txt"
+
+def load_scores():
+    try:
+        with open(SCORES_FILE, 'r') as f:
+            scores = [int(line.strip()) for line in f if line.strip().isdigit()]
+        return sorted(scores, reverse=True)[:10]
+    except Exception:
+        return []
+
+def save_score(score):
+    scores = load_scores()
+    scores.append(score)
+    scores = sorted(scores, reverse=True)[:10]
+    try:
+        with open(SCORES_FILE, 'w') as f:
+            for s in scores:
+                f.write(f"{s}\n")
+    except Exception as e:
+        print("Could not save score:", e)
+
+def draw_spacebar_icon(surface, cx, cy, w=40, h=16, color=(200,200,200)):
+    """Draw the international spacebar symbol (U-bracket) centred at cx,cy."""
+    thick = 4
+    # Bottom bar
+    pygame.draw.rect(surface, color, (cx - w//2, cy + h//2 - thick, w, thick))
+    # Left leg
+    pygame.draw.rect(surface, color, (cx - w//2, cy - h//2, thick, h))
+    # Right leg
+    pygame.draw.rect(surface, color, (cx + w//2 - thick, cy - h//2, thick, h))
+
+def draw_pause_overlay(surface, font, large_font):
+    # Semi-transparent dark overlay
+    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 180))
+    surface.blit(overlay, (0, 0))
+    # Dialog box
+    bw, bh = 400, 200
+    bx, by = (WIDTH - bw)//2, (HEIGHT - bh)//2
+    pygame.draw.rect(surface, (20, 30, 60), (bx, by, bw, bh), border_radius=12)
+    pygame.draw.rect(surface, NEON_BLUE, (bx, by, bw, bh), width=2, border_radius=12)
+    draw_text("BACK TO CONCOURSE?", font, WHITE, surface, WIDTH//2, by + 45)
+    # ESC row
+    esc_font = pygame.font.Font(None, 28)
+    draw_text("ESC  ·  QUIT", esc_font, NEON_RED, surface, WIDTH//2, by + 100)
+    # Spacebar icon + CONTINUE
+    draw_spacebar_icon(surface, WIDTH//2 - 60, by + 148)
+    draw_text("CONTINUE", esc_font, NEON_BLUE, surface, WIDTH//2 + 30, by + 148)
+
 class Paddle:
     def __init__(self):
         self.width = 100
@@ -265,13 +314,26 @@ async def main():
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    sys.exit()
+                    if state == "PLAYING":
+                        state = "PAUSED"
+                    elif state == "PAUSED":
+                        sys.exit()  # ESC again → exit to concourse
+                elif state == "PAUSED" and event.key == pygame.K_SPACE:
+                    state = "PLAYING"
+                # Dev shortcuts: F1-F4 jump to level
+                elif event.key in (pygame.K_F1, pygame.K_F2, pygame.K_F3, pygame.K_F4):
+                    dev_lvl = {pygame.K_F1:1, pygame.K_F2:2, pygame.K_F3:3, pygame.K_F4:4}[event.key]
+                    level = dev_lvl
+                    init_level(level)
+                    state = "PLAYING"
+                    ball.active = True
                 if state == "START" and event.key == pygame.K_SPACE:
                     state = "PLAYING"
                     ball.active = True
                 elif state == "PLAYING" and event.key == pygame.K_SPACE and not ball.active:
                     ball.active = True
                 elif state == "GAME_OVER" and event.key == pygame.K_SPACE:
+                    save_score(score)
                     level = 1
                     score = 0
                     lives = 3
@@ -285,6 +347,7 @@ async def main():
                     else:
                         state = "GAME_WON"
                 elif state == "GAME_WON" and event.key == pygame.K_SPACE:
+                    save_score(score)
                     level = 1
                     score = 0
                     lives = 3
@@ -293,8 +356,9 @@ async def main():
 
         keys = pygame.key.get_pressed()
 
-        if state == "PLAYING":
-            paddle.move(keys)
+        if state in ("PLAYING", "PAUSED"):
+            if state == "PLAYING":
+                paddle.move(keys)
             
             if not ball.active:
                 ball.x = paddle.x + paddle.width // 2
@@ -387,8 +451,15 @@ async def main():
             
             draw_text("PRESS SPACE TO START", font, NEON_PINK, screen, WIDTH//2, HEIGHT//2 + 80)
             draw_text(f"Level {level}", font, WHITE, screen, WIDTH//2, HEIGHT//2 + 130)
+            # High scores
+            hi_font = pygame.font.Font(None, 26)
+            scores = load_scores()
+            if scores:
+                draw_text("HIGH SCORES", hi_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2 + 185)
+                for i, s in enumerate(scores[:5]):
+                    draw_text(f"{i+1}. {s:,}", hi_font, (180,180,180), screen, WIDTH//2, HEIGHT//2 + 210 + i*22)
             
-        elif state in ["PLAYING", "LEVEL_CLEARED", "GAME_OVER", "GAME_WON"]:
+        elif state in ["PLAYING", "LEVEL_CLEARED", "GAME_OVER", "GAME_WON", "PAUSED"]:
             paddle.draw(screen)
             ball.draw(screen)
             for b in blocks:
@@ -401,7 +472,7 @@ async def main():
             draw_text(f"LIVES: {lives}", font, WHITE, screen, WIDTH - 100, 30)
             draw_text(f"LEVEL: {level}", font, WHITE, screen, WIDTH // 2, 30)
             small_font = pygame.font.Font(None, 22)
-            draw_text("ESC: QUIT", small_font, (120, 120, 120), screen, WIDTH - 55, HEIGHT - 15)
+            draw_text("ESC: PAUSE", small_font, (120, 120, 120), screen, WIDTH - 58, HEIGHT - 15)
 
             if state == "LEVEL_CLEARED":
                 if level < 4:
@@ -412,9 +483,21 @@ async def main():
             elif state == "GAME_OVER":
                 draw_text("GAME OVER", large_font, NEON_RED, screen, WIDTH//2, HEIGHT//2)
                 draw_text("PRESS SPACE TO RESTART", font, NEON_PINK, screen, WIDTH//2, HEIGHT//2 + 50)
+                hi_font = pygame.font.Font(None, 26)
+                scores = load_scores()
+                if scores:
+                    draw_text(f"BEST: {scores[0]:,}", hi_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2 + 90)
             elif state == "GAME_WON":
                 draw_text("DEMOCRACY SAVED!", large_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2)
                 draw_text("PRESS SPACE TO RESTART", font, NEON_PINK, screen, WIDTH//2, HEIGHT//2 + 50)
+                hi_font = pygame.font.Font(None, 26)
+                scores = load_scores()
+                if scores:
+                    draw_text(f"BEST: {scores[0]:,}", hi_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2 + 90)
+
+        # Pause overlay draws on top of whatever is rendered
+        if state == "PAUSED":
+            draw_pause_overlay(screen, font, large_font)
 
         pygame.display.flip()
         await asyncio.sleep(0)
