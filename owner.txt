@@ -1,0 +1,18 @@
+First, build a web app wrapper in front-end javascript (React is preferred) that can hold multiple games, and an intuitive way to get from one game to the next.
+The wrapper is in the theme of "Buzz's All-American Arcade" and should have a democracy plus retro 80s arcade look and feel. 
+
+The wrapper should flex for whatever web window size, game should allow grow and shrink if possible (based on the python packages you pick) but the Game screen dimensions and "vertical aspect ratio" and retro 8-bit look and feel will be old school like Donkey Kong (1981), Commando (1985), etc. so look those dimensions up.
+
+Then build a wall brick breaking game "IceOut" in the spirit of the 80s hit game Breakout, in whatever best python package (you pick) (probably WASM though) runs smoothly in our webapp wrapper.
+(the game will be a module in the same codebase as the wrapper, we'll build more as we go.)
+Except use translucent melty different colored ice cubes instead of bricks. In the area above the bricks, have a different latino/latina family member (e.g. mom, dad, son, daughter - just build 4 levels for now--) that escapes down and off the screen when the ice "breaks through" to them, for bonus points.
+Every once in a while, a villain will run across the screen. you hit them with the ball to get bonus points. i have included pictures of the 4 villains in the assets/iceout folder. (only villians of that type per level). (the 4 levels should get progressively harder, with more ice, faster ball, etc.)
+Breakout Wikipedia Page: https://en.wikipedia.org/wiki/Breakout_(video_game)
+Example gameplay here: https://elgoog.im/breakout/
+Our game might actually be closer to Arkanoid gameplay and look and feel, look it up.
+
+THE WEBAPP and the game MUST THEN DEPLOY AND RUN TO GITHUB PAGES.
+so obviously, no server-side code.
+
+I have notes on how to deploy React apps to github pages if you need it: /Users/rudil24/Documents/webdev/agenticStrategy/docs/reactViteSurvivalGuide.md
+

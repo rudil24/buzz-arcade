@@ -1,0 +1,254 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@300;500;800&display=swap');
+
+:root {
+  --neon-blue: #00f3ff;
+  --neon-pink: #ff00ea;
+  --neon-red: #ff003c;
+  --neon-yellow: #f8e71c;
+  --bg-dark: #060913;
+  --glass-bg: rgba(10, 15, 30, 0.7);
+  --glass-border: rgba(0, 243, 255, 0.3);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  font-family: 'Outfit', sans-serif;
+  background: radial-gradient(circle at center, #1b022d 0%, var(--bg-dark) 100%);
+  color: #fff;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.arcade-wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 2rem;
+  background-image: 
+    linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)),
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,243,255,0.05) 2px, rgba(0,243,255,0.05) 4px);
+}
+
+.arcade-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  animation: floatTitle 4s ease-in-out infinite;
+}
+
+.arcade-header h1 {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 2.5rem;
+  color: #fff;
+  text-shadow: 
+    0 0 5px #fff,
+    0 0 10px #fff,
+    0 0 20px var(--neon-red),
+    0 0 40px var(--neon-blue),
+    0 0 80px var(--neon-blue);
+  margin-bottom: 1rem;
+  letter-spacing: 2px;
+}
+
+.arcade-header p {
+  font-size: 1.2rem;
+  color: var(--neon-yellow);
+  text-transform: uppercase;
+  letter-spacing: 4px;
+}
+
+.arcade-main {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.game-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.glow-text {
+  font-family: 'Press Start 2P', cursive;
+  color: var(--neon-pink);
+  text-shadow: 0 0 10px var(--neon-pink);
+  font-size: 1.5rem;
+}
+
+.game-cabinet {
+  background: var(--glass-bg);
+  border: 2px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 2rem;
+  width: 320px;
+  height: 450px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  box-shadow: 0 0 30px rgba(0, 243, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.game-cabinet::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%);
+  pointer-events: none;
+}
+
+.game-cabinet:hover {
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 0 50px rgba(0, 243, 255, 0.3);
+  border-color: var(--neon-blue);
+}
+
+.game-cabinet:hover .play-btn {
+  background: var(--neon-blue);
+  color: var(--bg-dark);
+  box-shadow: 0 0 20px var(--neon-blue);
+}
+
+.screen-preview {
+  background: #000;
+  width: 100%;
+  height: 250px;
+  border-radius: 10px;
+  border: 4px solid #333;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: inset 0 0 20px rgba(0,243,255,0.2);
+  position: relative;
+}
+
+.screen-preview::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
+  pointer-events: none;
+}
+
+.screen-preview h3 {
+  font-family: 'Press Start 2P', cursive;
+  color: var(--neon-blue);
+  font-size: 1.2rem;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 0 5px var(--neon-blue);
+}
+
+.screen-preview p {
+  color: var(--neon-pink);
+  font-size: 0.9rem;
+}
+
+.play-btn {
+  background: transparent;
+  color: var(--neon-yellow);
+  border: 2px solid var(--neon-yellow);
+  font-family: 'Press Start 2P', cursive;
+  padding: 1rem 1.5rem;
+  font-size: 0.8rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+}
+
+/* Gameplay View */
+.game-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+}
+
+.back-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: var(--neon-pink);
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1rem;
+  margin-bottom: 2rem;
+  cursor: pointer;
+  transition: text-shadow 0.3s ease;
+}
+
+.back-btn:hover {
+  text-shadow: 0 0 10px var(--neon-pink);
+}
+
+.crt-screen {
+  background: #000;
+  padding: 2rem;
+  border-radius: 20px;
+  border: 8px solid #222;
+  box-shadow: 
+    inset 0 0 40px rgba(0,0,0,0.8),
+    0 0 50px rgba(0,243,255,0.2),
+    0 0 20px rgba(0,243,255,0.1);
+  position: relative;
+  width: 100%;
+  max-width: 650px; /* Arcade vertical aspect ratio */
+  aspect-ratio: 3 / 4;
+}
+
+/* CRT Scanline Effect */
+.crt-screen::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 2;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+  border-radius: 12px;
+}
+
+.game-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 8px;
+  background: #111;
+  position: relative;
+  z-index: 1;
+}
+
+.arcade-footer {
+  text-align: center;
+  margin-top: 3rem;
+  color: #666;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+}
+
+@keyframes floatTitle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@media (max-width: 768px) {
+  .arcade-header h1 { font-size: 1.5rem; }
+  .game-cabinet { width: 100%; max-width: 320px; }
+  .crt-screen { padding: 1rem; border-width: 4px; }
+}
