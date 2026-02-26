@@ -1,16 +1,39 @@
-# React + Vite
+# Buzz's All-American Arcade
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A high-quality web arcade wrapper built with React, styled in "Democracy + Retro 80s Synthwave," and hosting custom Python/WASM arcade games.
 
-Currently, two official plugins are available:
+> This project serves as a portfolio piece showcasing frontend architecture, WebAssembly game integration, and retro design principles.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Documentation
 
-## React Compiler
+This project adheres to the OPST Kickoff framework. Please review the foundational documents:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- [Product Requirements Document (PRD)](./docs/PRD.md)
+- [Design Document & Visual Mockups](./docs/Design.md)
+- [Development Task List](./docs/TASK_LIST.md)
 
-## Expanding the ESLint configuration
+## Development Setup
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The application is structured into two main parts:
+1. **React Wrapper**: Built using Vite.
+2. **IceOut Game**: Built using Pygame CE and compiled via `pygbag`.
+
+### Prerequisites
+- Node.js (for React wrapper)
+- Python 3.10+ (for Game building)
+- `pygbag` (`pip install pygbag`)
+
+### Quick Start (Local Wrapper)
+
+```bash
+cd buzz-arcade
+npm install
+npm run dev
+```
+
+### Building the WASM Game
+
+*(Instructions on compiling game to be filled in out during development phase)*
+
+---
+*Created per OPST Strategy Toolkit standard procedures.*
