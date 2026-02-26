@@ -43,7 +43,6 @@ async def custom_site():
         with zipfile.ZipFile(archive) as zip_ref:
             zip_ref.extractall(appdir.as_posix())
 
-
     # preloader will change to work dir and prepend it to sys.path
     platform.run_main(PyConfig, loaderhome= appdir / "assets", loadermain=None)
 
@@ -292,7 +291,7 @@ asyncio.run( custom_site() )
         */
     </script>
 
-    <script src="https://unpkg.com/browserfs@1.4.3/dist/browserfs.min.js"></script>
+    <script src="https://pygame-web.github.io/cdn/0.9.3//browserfs.min.js"></script>
 
 </head>
 
