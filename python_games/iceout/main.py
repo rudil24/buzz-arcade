@@ -351,21 +351,48 @@ async def main():
             if event.type == pygame.QUIT:
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
+
+                # --- ENTER_INITIALS handled first with full priority ---
+                if state == "ENTER_INITIALS":
+                    if event.key == pygame.K_BACKSPACE:
+                        current_initials = current_initials[:-1]
+                    elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                        if len(current_initials) > 0:
+                            try:
+                                save_entry(current_initials.ljust(3, '_')[:3], score)
+                            except Exception:
+                                pass
+                            level = 1; score = 0; lives = 3
+                            init_level(level); state = "START"
+                    elif event.key == pygame.K_ESCAPE:
+                        # ESC as fallback confirm
+                        if len(current_initials) > 0:
+                            try:
+                                save_entry(current_initials.ljust(3, '_')[:3], score)
+                            except Exception:
+                                pass
+                            level = 1; score = 0; lives = 3
+                            init_level(level); state = "START"
+                    else:
+                        ch = pygame.key.name(event.key).upper()
+                        if len(ch) == 1 and ch in ALLOWED_INITIALS and len(current_initials) < 3:
+                            current_initials += ch
+
+                # --- All other game states ---
+                elif event.key == pygame.K_ESCAPE:
                     if state == "PLAYING":
                         state = "PAUSED"
                     elif state == "PAUSED":
-                        sys.exit()  # ESC again → exit to concourse
+                        sys.exit()
                 elif state == "PAUSED" and event.key == pygame.K_SPACE:
                     state = "PLAYING"
-                # Dev shortcuts: F1-F4 jump to level
                 elif event.key in (pygame.K_F1, pygame.K_F2, pygame.K_F3, pygame.K_F4):
-                    dev_lvl = {pygame.K_F1:1, pygame.K_F2:2, pygame.K_F3:3, pygame.K_F4:4}[event.key]
+                    dev_lvl = {pygame.K_F1: 1, pygame.K_F2: 2, pygame.K_F3: 3, pygame.K_F4: 4}[event.key]
                     level = dev_lvl
                     init_level(level)
                     state = "PLAYING"
                     ball.active = True
-                if state == "START" and event.key == pygame.K_SPACE:
+                elif state == "START" and event.key == pygame.K_SPACE:
                     state = "PLAYING"
                     ball.active = True
                 elif state == "PLAYING" and event.key == pygame.K_SPACE and not ball.active:
@@ -391,21 +418,7 @@ async def main():
                     else:
                         level = 1; score = 0; lives = 3
                         init_level(level); state = "START"
-                # Initials entry
-                elif state == "ENTER_INITIALS":
-                    if event.key == pygame.K_BACKSPACE:
-                        current_initials = current_initials[:-1]
-                    elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
-                        # Confirm with at least 1 char (pad with underscores)
-                        if len(current_initials) > 0:
-                            save_entry(current_initials.ljust(3, '_')[:3], score)
-                            level = 1; score = 0; lives = 3
-                            init_level(level); state = "START"
-                    else:
-                        ch = pygame.key.name(event.key).upper()
-                        if len(ch) == 1 and ch in ALLOWED_INITIALS and len(current_initials) < 3:
-                            current_initials += ch
-                            # NO auto-confirm — always require ENTER to submit
+
 
         keys = pygame.key.get_pressed()
 
