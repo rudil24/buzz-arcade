@@ -17,8 +17,20 @@ function App() {
             <h2 className="glow-text">Select a Game</h2>
             <div className="game-cabinet" onClick={() => setCurrentGame('iceout')}>
               <div className="screen-preview">
-                <h3>ICE-OUT</h3>
-                <p>Break the Ice!</p>
+                <div className="attract-mode">
+                  <h3>ICE-OUT</h3>
+                  <p>Break the Ice!</p>
+                  <div className="demo-blocks">
+                    <div className="block"></div>
+                    <div className="block"></div>
+                    <div className="block"></div>
+                    <div className="block" style={{ borderColor: 'var(--neon-pink)', boxShadow: '0 0 5px var(--neon-pink)' }}></div>
+                    <div className="block"></div>
+                  </div>
+                  <div style={{ fontSize: '0.6rem', marginTop: '10px', color: 'gray' }}>
+                    Latino Family Rescue Mission
+                  </div>
+                </div>
               </div>
               <div className="cabinet-details">
                 <button className="play-btn">INSERT COIN</button>
@@ -34,7 +46,7 @@ function App() {
               {currentGame === 'iceout' && (
                 <iframe
                   title="IceOut"
-                  src="/games/iceout/build/web/index.html"
+                  src="/buzz-arcade/python_games/iceout/build/web/index.html"
                   className="game-frame"
                 ></iframe>
               )}
@@ -44,7 +56,7 @@ function App() {
       </main>
 
       <footer className="arcade-footer">
-        <p>&copy; 2026 Buzz's Arcade. All Rights Reserved.</p>
+        <p>★ BORN IN THE USA ★ &copy; 2026 Buzz's Arcade. All Rights Reserved.</p>
       </footer>
     </div>
   );

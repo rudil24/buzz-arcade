@@ -1,6 +1,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@300;500;800&display=swap');
 
+:root {
+  --neon-blue: #00f3ff;
+  --neon-pink: #ff00ea;
+  --neon-red: #ff003c;
+  --neon-yellow: #f8e71c;
+  --bg-dark: #060913;
+  --glass-bg: rgba(10, 15, 30, 0.7);
+  --glass-border: rgba(0, 243, 255, 0.3);
+}
+
 body {
   margin: 0;
   padding: 0;
+  font-family: 'Outfit', sans-serif;
+  background: radial-gradient(circle at center, #1b022d 0%, var(--bg-dark) 100%);
+  color: #fff;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--neon-blue);
+  border-radius: 4px;
 }
