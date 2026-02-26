@@ -18,3 +18,9 @@ __Project initialized in Google Antigravity__
 - Evaluated current test coverage for the `buzz-arcade` (Ice Out game): __0% coverage.__
 - The Antigravity Browser tool was successfully patched to version 1.19.5, allowing end-to-end visual tests moving forward.
 - Delegating the establishment of a robust testing suite to __Vera (QA)__.
+
+## Ice Out: QA and Deployment Completed
+- __State Machine Hardened:__ Refactored the `handle_initials_input` keystroke logic and fixed a fall-through `continue` bug that caused double-ESC freezes.
+- __Vite/WASM Bridge Stabilized:__ Programmatically dispatched `resize` events to the Pygbag iframe to ensure pixel-perfect viewport scaling on initial load. Replaced raw `sys.exit()` with Javascript `postMessage` calls for seamless React/Pygame back-navigation.
+- __Testing Established:__ Vera generated an 18% Core Logic Pytest coverage report, successfully substituting the remaining boilerplate 82% WebGL graphic commands with E2E Chromium Browser Agent testing.
+- __GitHub Pages Deployment:__ Bypassed draconian GitHub Pages headers by aggressively caching `coi-serviceworker.js` to enable WebAssembly `SharedArrayBuffer` threading. Pushed live. Project closed. Ready for Retro Phase.
