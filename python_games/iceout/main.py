@@ -177,8 +177,8 @@ class Block:
 
 class FamilyMember:
     def __init__(self, level=1):
-        self.width = 60
-        self.height = 80
+        self.width = 36 if level == 1 else 54
+        self.height = 48 if level == 1 else 72
         self.x = WIDTH // 2
         self.y = 100  # Above blocks
         self.speed = 2
