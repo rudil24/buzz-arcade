@@ -106,7 +106,7 @@ def draw_pixel_person(filename, hair_color, skin_color, shirt_color, pants_color
 draw_pixel_person('fam_dad', BROWN, SKIN_DARK, (50, 100, 200, 255), (50, 50, 50, 255))
 draw_pixel_person('fam_mom', BLONDE, SKIN_LIGHT, (200, 50, 100, 255), (100, 100, 200, 255), is_female=True)
 draw_pixel_person('fam_son', BROWN, SKIN_DARK, (50, 200, 50, 255), (200, 200, 50, 255), is_child=True)
-draw_pixel_person('fam_daughter', BLONDE, SKIN_LIGHT, (255, 100, 200, 255), (255, 255, 255, 255), is_female=True, is_child=True)
+draw_pixel_person('fam_daughter', BROWN, SKIN_DARK, (220, 70, 40, 255), (50, 80, 150, 255), is_female=True, is_child=True)
 
 # --- 4. Hand-Drawn Full Body Pixel Art Villains (24×32, scaled 3× to 72×96) ---
 # Each villain has a distinct silhouette and costume at true retro resolution.

@@ -5,6 +5,11 @@ import sys
 import os
 import math
 
+# Bonus points for catching the falling family member
+CATCH_BONUS = {1: 500, 2: 1000, 3: 1500, 4: 2000}
+# Family sprite per level
+FAMILY_SPRITE = {1: 'fam_son', 2: 'fam_daughter', 3: 'fam_mom', 4: 'fam_dad'}
+
 # Constants
 WIDTH = 600
 HEIGHT = 800
@@ -87,8 +92,15 @@ class Ball:
         # Wall collisions
         if self.x - self.radius <= 0 or self.x + self.radius >= WIDTH:
             self.dx *= -1
+            # add tiny jitter so ball never stays perfectly vertical
+            self.dx += random.uniform(-0.3, 0.3)
         if self.y - self.radius <= 0:
             self.dy *= -1
+
+        # Enforce minimum horizontal speed so ball can't loop vertically
+        MIN_DX = 1.5
+        if abs(self.dx) < MIN_DX:
+            self.dx = MIN_DX if self.dx >= 0 else -MIN_DX
 
     def draw(self, surface):
         if 'ball' in IMAGES:
@@ -115,9 +127,9 @@ class Block:
                 surface.blit(s, (self.rect.x, self.rect.y))
 
 class FamilyMember:
-    def __init__(self):
-        self.width = 30
-        self.height = 40
+    def __init__(self, level=1):
+        self.width = 60
+        self.height = 80
         self.x = WIDTH // 2
         self.y = 100  # Above blocks
         self.speed = 2
@@ -125,7 +137,9 @@ class FamilyMember:
         self.falling = False
         self.rescued = False
         self.color = NEON_PINK
-        self.sprite_key = random.choice(['fam_dad', 'fam_mom', 'fam_son', 'fam_daughter'])
+        self.sprite_key = FAMILY_SPRITE.get(level, 'fam_son')
+        self.level = level
+        self.catch_scored = False
 
     def update(self, blocks):
         if self.rescued:
@@ -162,7 +176,7 @@ class FamilyMember:
         else:
             self.y += 5
             if self.y > HEIGHT:
-                self.rescued = True
+                self.rescued = True  # fell off — remove, no bonus
 
     def draw(self, surface):
         if not self.rescued:
@@ -228,13 +242,13 @@ async def main():
         cols = 8
         block_w = WIDTH // cols
         block_h = 30
-        start_y = 150
+        start_y = 200
         color_names = ['block_blue', 'block_purple', 'block_green', 'block_blue']
         for r in range(rows):
             c_name = color_names[r % len(color_names)]
             for c in range(cols):
                 blocks.append(Block(c * block_w, start_y + r * block_h, block_w - 2, block_h - 2, c_name))
-        family_member = FamilyMember()
+        family_member = FamilyMember(lvl)
         villain = None
         villain_timer = 0
         paddle = Paddle()
@@ -250,6 +264,8 @@ async def main():
             if event.type == pygame.QUIT:
                 sys.exit()
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    sys.exit()
                 if state == "START" and event.key == pygame.K_SPACE:
                     state = "PLAYING"
                     ball.active = True
@@ -290,8 +306,14 @@ async def main():
             if ball.dy > 0 and ball.y + ball.radius >= paddle.y and ball.y - ball.radius <= paddle.y + paddle.height:
                 if ball.x >= paddle.x and ball.x <= paddle.x + paddle.width:
                     ball.dy *= -1
-                    hit_pos = (ball.x - paddle.x) / paddle.width
-                    ball.dx = 10 * (hit_pos - 0.5)
+                    hit_pos = (ball.x - paddle.x) / paddle.width  # 0.0 (left) to 1.0 (right)
+                    # Non-linear curve: sign * t^2 gives much sharper corners
+                    t = hit_pos - 0.5          # -0.5 … +0.5
+                    ball.dx = 16 * t * abs(t)  # quadratic: ±0 center, ±4 edge
+                    # Clamp so we never go totally flat
+                    MIN_DX = 1.0
+                    if abs(ball.dx) < MIN_DX:
+                        ball.dx = MIN_DX if ball.dx >= 0 else -MIN_DX
 
             # Block Collision
             for b in blocks:
@@ -324,9 +346,21 @@ async def main():
             elif villain and not villain.active:
                 villain = None
 
+            # Check if falling family member is caught by paddle
+            if family_member.falling and not family_member.rescued and not family_member.catch_scored:
+                fam_rect = pygame.Rect(int(family_member.x), int(family_member.y),
+                                       family_member.width, family_member.height)
+                paddle_rect = pygame.Rect(paddle.x, paddle.y, paddle.width, paddle.height)
+                if fam_rect.colliderect(paddle_rect):
+                    bonus = CATCH_BONUS.get(level, 500)
+                    score += bonus
+                    family_member.catch_scored = True
+                    family_member.rescued = True  # stop drawing
+
             family_member.update(blocks)
-            if family_member.rescued:
-                score += 1000
+
+            # Level clears when all blocks are gone
+            if not any(b.active for b in blocks):
                 state = "LEVEL_CLEARED"
 
             # Check dead ball
@@ -337,8 +371,8 @@ async def main():
                 else:
                     ball.active = False
 
-            # Check all blocks dead
-            if not any(b.active for b in blocks) and not family_member.rescued:
+            # All blocks gone → make family member fall if still walking
+            if not any(b.active for b in blocks):
                 family_member.falling = True
 
         screen.fill(BLACK)
@@ -366,6 +400,8 @@ async def main():
             draw_text(f"SCORE: {score}", font, WHITE, screen, 100, 30)
             draw_text(f"LIVES: {lives}", font, WHITE, screen, WIDTH - 100, 30)
             draw_text(f"LEVEL: {level}", font, WHITE, screen, WIDTH // 2, 30)
+            small_font = pygame.font.Font(None, 22)
+            draw_text("ESC: QUIT", small_font, (120, 120, 120), screen, WIDTH - 55, HEIGHT - 15)
 
             if state == "LEVEL_CLEARED":
                 if level < 4:
