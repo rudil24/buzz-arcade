@@ -46,7 +46,7 @@ function App() {
               {currentGame === 'iceout' && (
                 <iframe
                   title="IceOut"
-                  src="/buzz-arcade/python_games/iceout/build/web/index.html"
+                  src={`${import.meta.env.BASE_URL}games/iceout/index.html`}
                   className="game-frame"
                 ></iframe>
               )}
