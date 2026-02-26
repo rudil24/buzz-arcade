@@ -1,8 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './App.css';
 
 function App() {
   const [currentGame, setCurrentGame] = useState(null);
+
+  useEffect(() => {
+    const handleMessage = (event) => {
+      if (event.data === 'returnToConcourse') {
+        setCurrentGame(null);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   return (
     <div className="arcade-wrapper">
@@ -48,6 +58,15 @@ function App() {
                   title="IceOut"
                   src={`${import.meta.env.BASE_URL}games/iceout/index.html`}
                   className="game-frame"
+                  onLoad={(e) => {
+                    // Pygbag initializes its canvas size based on the window. 
+                    // React DOM updates sometimes cause Pygbag to read the size before CSS is fully applied.
+                    // Dispatching resize forces Pygbag's event listener to scale the canvas down to the container wrapper.
+                    const enforceScaling = () => e.target.contentWindow?.dispatchEvent(new Event('resize'));
+                    setTimeout(enforceScaling, 100);
+                    setTimeout(enforceScaling, 500);
+                    setTimeout(enforceScaling, 1500);
+                  }}
                 ></iframe>
               )}
             </div>

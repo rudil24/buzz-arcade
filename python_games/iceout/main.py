@@ -87,6 +87,39 @@ def save_entry(initials, score):
     except Exception as e:
         print("Could not save score:", e)
 
+def handle_initials_input(event, current_initials, score):
+    """
+    State logic for ENTER_INITIALS screen.
+    Returns (new_initials, state_changed)
+    """
+    if event.key == pygame.K_BACKSPACE:
+        return current_initials[:-1], False
+        
+    elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+        # BUG REPLICATION TARGET: Why does this freeze?
+        if len(current_initials) > 0:
+            try:
+                save_entry(current_initials.ljust(3, '_')[:3], score)
+            except Exception:
+                pass
+            return current_initials, True
+            
+    elif event.key == pygame.K_ESCAPE:
+        if len(current_initials) > 0:
+            try:
+                save_entry(current_initials.ljust(3, '_')[:3], score)
+            except Exception:
+                pass
+            return current_initials, True
+            
+    else:
+        ch = pygame.key.name(event.key).upper()
+        if len(ch) == 1 and ch in ALLOWED_INITIALS and len(current_initials) < 3:
+            return current_initials + ch, False
+            
+    return current_initials, False
+
+
 def draw_zone_text(surface, text, font_size, alpha, y):
     """Draw translucent italic-style text centred horizontally at y."""
     zfont = pygame.font.Font(None, font_size)
@@ -354,35 +387,22 @@ async def main():
 
                 # --- ENTER_INITIALS handled first with full priority ---
                 if state == "ENTER_INITIALS":
-                    if event.key == pygame.K_BACKSPACE:
-                        current_initials = current_initials[:-1]
-                    elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
-                        if len(current_initials) > 0:
-                            try:
-                                save_entry(current_initials.ljust(3, '_')[:3], score)
-                            except Exception:
-                                pass
-                            level = 1; score = 0; lives = 3
-                            init_level(level); state = "START"
-                    elif event.key == pygame.K_ESCAPE:
-                        # ESC as fallback confirm
-                        if len(current_initials) > 0:
-                            try:
-                                save_entry(current_initials.ljust(3, '_')[:3], score)
-                            except Exception:
-                                pass
-                            level = 1; score = 0; lives = 3
-                            init_level(level); state = "START"
-                    else:
-                        ch = pygame.key.name(event.key).upper()
-                        if len(ch) == 1 and ch in ALLOWED_INITIALS and len(current_initials) < 3:
-                            current_initials += ch
+                    current_initials, confirm = handle_initials_input(event, current_initials, score)
+                    if confirm:
+                        level = 1; score = 0; lives = 3
+                        init_level(level); state = "START"
+                    continue # BUG FIX: skip the rest of the handlers so we don't fall through to ESC logic
 
                 # --- All other game states ---
                 elif event.key == pygame.K_ESCAPE:
                     if state == "PLAYING":
                         state = "PAUSED"
                     elif state == "PAUSED":
+                        try:
+                            import platform
+                            platform.window.parent.postMessage('returnToConcourse', '*')
+                        except Exception:
+                            pass
                         sys.exit()
                 elif state == "PAUSED" and event.key == pygame.K_SPACE:
                     state = "PLAYING"
