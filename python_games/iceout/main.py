@@ -240,12 +240,17 @@ class FamilyMember:
 
 class Villain:
     def __init__(self, level):
-        self.width = 54
-        self.height = 72
-        self.y = HEIGHT // 2
+        # L3 & L4 villains are 25% bigger
+        if level >= 3:
+            self.width = 90
+            self.height = 120
+        else:
+            self.width = 72
+            self.height = 96
+        self.y = HEIGHT // 2 - self.height // 2
         self.direction = random.choice([-1, 1])
         self.x = -self.width if self.direction == 1 else WIDTH
-        self.speed = 3 + level
+        self.speed = 1.5 + level * 0.5  # slower: was 3+level
         self.active = True
         self.level = level
 
@@ -400,11 +405,16 @@ async def main():
             
             if villain and villain.active:
                 villain.update()
-                # Villain Collision
-                villain_rect = pygame.Rect(villain.x, villain.y, villain.width, villain.height)
-                if villain_rect.collidepoint(ball.x, ball.y) or villain_rect.collidepoint(ball.x + ball.radius, ball.y):
-                    villain.active = False
+                # Villain Collision — ball bounces back like hitting a brick
+                villain_rect = pygame.Rect(int(villain.x), int(villain.y), villain.width, villain.height)
+                ball_rect = pygame.Rect(int(ball.x - ball.radius), int(ball.y - ball.radius),
+                                        ball.radius * 2, ball.radius * 2)
+                if ball_rect.colliderect(villain_rect):
+                    ball.dy *= -1  # bounce vertically
+                    # nudge ball out of villain to prevent sticking
+                    ball.y += ball.dy * 2
                     score += 500
+                    villain.active = False
                     villain = None
                     villain_timer = 0
             elif villain and not villain.active:
