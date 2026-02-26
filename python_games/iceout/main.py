@@ -51,25 +51,57 @@ def draw_text(text, font, color, surface, x, y):
     surface.blit(textobj, textrect)
 
 SCORES_FILE = "highscores.txt"
+ALLOWED_INITIALS = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?&')
 
 def load_scores():
+    """Returns list of (initials, score) tuples, sorted high-first."""
+    entries = []
     try:
         with open(SCORES_FILE, 'r') as f:
-            scores = [int(line.strip()) for line in f if line.strip().isdigit()]
-        return sorted(scores, reverse=True)[:10]
+            for line in f:
+                line = line.strip()
+                if ',' in line:
+                    parts = line.split(',', 1)
+                    try:
+                        entries.append((parts[0], int(parts[1])))
+                    except ValueError:
+                        pass
+                elif line.isdigit():  # legacy plain numbers
+                    entries.append(('???', int(line)))
     except Exception:
-        return []
+        pass
+    return sorted(entries, key=lambda x: x[1], reverse=True)[:10]
 
-def save_score(score):
+def is_top_10(score):
     scores = load_scores()
-    scores.append(score)
-    scores = sorted(scores, reverse=True)[:10]
+    return len(scores) < 10 or score > scores[-1][1]
+
+def save_entry(initials, score):
+    entries = load_scores()
+    entries.append((initials[:3].upper(), score))
+    entries = sorted(entries, key=lambda x: x[1], reverse=True)[:10]
     try:
         with open(SCORES_FILE, 'w') as f:
-            for s in scores:
-                f.write(f"{s}\n")
+            for ini, s in entries:
+                f.write(f"{ini},{s}\n")
     except Exception as e:
         print("Could not save score:", e)
+
+def draw_zone_text(surface, text, font_size, alpha, y):
+    """Draw translucent italic-style text centred horizontally at y."""
+    zfont = pygame.font.Font(None, font_size)
+    surf = zfont.render(text, True, WHITE)
+    # Simulate italic by shearing horizontally (pixel-by-pixel row shift)
+    w, h = surf.get_size()
+    shear = 0.28
+    new_w = w + int(h * shear) + 2
+    italic_surf = pygame.Surface((new_w, h), pygame.SRCALPHA)
+    for row in range(h):
+        x_off = int(shear * (h - row))
+        italic_surf.blit(surf, (x_off, row), (0, row, w, 1))
+    italic_surf.set_alpha(alpha)
+    rect = italic_surf.get_rect(center=(WIDTH // 2, y))
+    surface.blit(italic_surf, rect)
 
 def draw_spacebar_icon(surface, cx, cy, w=40, h=16, color=(200,200,200)):
     """Draw the international spacebar symbol (U-bracket) centred at cx,cy."""
@@ -288,6 +320,7 @@ async def main():
     family_member = None
     villain = None
     villain_timer = 0
+    current_initials = ""
 
     def init_level(lvl):
         nonlocal blocks, family_member, villain, villain_timer, paddle, ball
@@ -338,12 +371,12 @@ async def main():
                 elif state == "PLAYING" and event.key == pygame.K_SPACE and not ball.active:
                     ball.active = True
                 elif state == "GAME_OVER" and event.key == pygame.K_SPACE:
-                    save_score(score)
-                    level = 1
-                    score = 0
-                    lives = 3
-                    init_level(level)
-                    state = "START"
+                    if is_top_10(score):
+                        state = "ENTER_INITIALS"
+                        current_initials = ""
+                    else:
+                        level = 1; score = 0; lives = 3
+                        init_level(level); state = "START"
                 elif state == "LEVEL_CLEARED" and event.key == pygame.K_SPACE:
                     if level < 4:
                         level += 1
@@ -352,12 +385,27 @@ async def main():
                     else:
                         state = "GAME_WON"
                 elif state == "GAME_WON" and event.key == pygame.K_SPACE:
-                    save_score(score)
-                    level = 1
-                    score = 0
-                    lives = 3
-                    init_level(level)
-                    state = "START"
+                    if is_top_10(score):
+                        state = "ENTER_INITIALS"
+                        current_initials = ""
+                    else:
+                        level = 1; score = 0; lives = 3
+                        init_level(level); state = "START"
+                # Initials entry
+                elif state == "ENTER_INITIALS":
+                    if event.key == pygame.K_BACKSPACE:
+                        current_initials = current_initials[:-1]
+                    elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+                        # Confirm with at least 1 char (pad with underscores)
+                        if len(current_initials) > 0:
+                            save_entry(current_initials.ljust(3, '_')[:3], score)
+                            level = 1; score = 0; lives = 3
+                            init_level(level); state = "START"
+                    else:
+                        ch = pygame.key.name(event.key).upper()
+                        if len(ch) == 1 and ch in ALLOWED_INITIALS and len(current_initials) < 3:
+                            current_initials += ch
+                            # NO auto-confirm — always require ENTER to submit
 
         keys = pygame.key.get_pressed()
 
@@ -470,6 +518,8 @@ async def main():
                     draw_text(f"{i+1}. {s:,}", hi_font, (180,180,180), screen, WIDTH//2, HEIGHT//2 + 210 + i*22)
             
         elif state in ["PLAYING", "LEVEL_CLEARED", "GAME_OVER", "GAME_WON", "PAUSED"]:
+            # Background zone label above bricks (drawn first, behind sprites)
+            draw_zone_text(screen, '"CRIMINAL" CONFINEMENT', 46, 28, 130)
             paddle.draw(screen)
             ball.draw(screen)
             for b in blocks:
@@ -494,20 +544,41 @@ async def main():
                 draw_text("GAME OVER", large_font, NEON_RED, screen, WIDTH//2, HEIGHT//2)
                 draw_text("PRESS SPACE TO RESTART", font, NEON_PINK, screen, WIDTH//2, HEIGHT//2 + 50)
                 hi_font = pygame.font.Font(None, 26)
-                scores = load_scores()
-                if scores:
-                    draw_text(f"BEST: {scores[0]:,}", hi_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2 + 90)
+                entries = load_scores()
+                if entries:
+                    draw_text(f"BEST: {entries[0][0]}  {entries[0][1]:,}", hi_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2 + 90)
             elif state == "GAME_WON":
                 draw_text("DEMOCRACY SAVED!", large_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2)
                 draw_text("PRESS SPACE TO RESTART", font, NEON_PINK, screen, WIDTH//2, HEIGHT//2 + 50)
                 hi_font = pygame.font.Font(None, 26)
-                scores = load_scores()
-                if scores:
-                    draw_text(f"BEST: {scores[0]:,}", hi_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2 + 90)
+                entries = load_scores()
+                if entries:
+                    draw_text(f"BEST: {entries[0][0]}  {entries[0][1]:,}", hi_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2 + 90)
 
         # Pause overlay draws on top of whatever is rendered
         if state == "PAUSED":
             draw_pause_overlay(screen, font, large_font)
+
+        # Initials entry screen
+        if state == "ENTER_INITIALS":
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 200))
+            screen.blit(overlay, (0, 0))
+            bw, bh = 420, 240
+            bx, by = (WIDTH-bw)//2, (HEIGHT-bh)//2
+            pygame.draw.rect(screen, (20,30,60), (bx,by,bw,bh), border_radius=12)
+            pygame.draw.rect(screen, NEON_PINK, (bx,by,bw,bh), width=2, border_radius=12)
+            draw_text("NEW HIGH SCORE!", font, NEON_PINK, screen, WIDTH//2, by+40)
+            draw_text(f"{score:,}", large_font, WHITE, screen, WIDTH//2, by+85)
+            draw_text("ENTER INITIALS:", font, WHITE, screen, WIDTH//2, by+140)
+            # Show typed initials with cursor boxes
+            ini_font = pygame.font.Font(None, 72)
+            for i in range(3):
+                cx = WIDTH//2 - 60 + i*44
+                ch = current_initials[i] if i < len(current_initials) else '_'
+                clr = WHITE if i < len(current_initials) else (80,80,80)
+                draw_text(ch, ini_font, clr, screen, cx, by+185)
+            draw_text("A-Z  0-9  !  ?  &     ENTER to confirm", pygame.font.Font(None,22), (140,140,140), screen, WIDTH//2, by+225)
 
         pygame.display.flip()
         await asyncio.sleep(0)
