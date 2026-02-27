@@ -30,10 +30,26 @@ cd buzz-arcade
 npm install
 npm run dev
 ```
+Make sure `iceout.apk` and the Pygbag `index.html` bootloader are located in `public/games/iceout/` before accessing the emulation.
 
-### Building the WASM Game
+### Building the WASM Game (Ice Out)
 
-*(Instructions on compiling game to be filled in out during development phase)*
+We use a patched `index.html` bootloader that natively reads `.apk` (zipfile) formats rather than uncompressed `.tar` archives, as Vite's environments often reject the `untar` method. Wait for `pygbag` to finish compiling its dependencies on the first run.
+
+```bash
+cd python_games/iceout/
+python3 package_apk.py
+```
+This script will bundle the `assets/` and `main.py` into `iceout.apk` and push it to the Vite `public/` directory.
+
+### GitHub Pages Deployment
+
+To enable `SharedArrayBuffer` threading for Pygame's WebAssembly canvas, the project uses `coi-serviceworker` to enforce Cross-Origin headers on GH Pages.
+Deploy directly via npm:
+
+```bash
+npm run deploy
+```
 
 ---
 *Created per OPST Strategy Toolkit standard procedures.*
