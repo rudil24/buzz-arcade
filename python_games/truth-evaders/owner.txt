@@ -1,16 +1,26 @@
-Truth Evaders is the next game in our Buzz Arcade series. 
+Truth Evaders is the next game in our Buzz Arcade series.
+It'll run in the same WebAssembly package as our iecout game (it's in a sister folder under buzz-arcade repo).
 
-It's based on space invaders (gameplay here) https://www.youtube.com/watch?v=MU4psw3ccUI
+truth-evaders is based on space invaders (gameplay here) https://www.youtube.com/watch?v=MU4psw3ccUI
 
-Except we want WHITE background, black outlined aliens, holding black "redacted" placards in front of them.
+Except we want WHITE background, black outlined aliens, holding black "redacted" placards in front of them. (see assets/redacted_example.png for an example of the style of redaction)
+(perhaps a  dark mode for those that find the white blinding, like me, but the aesthetic is important of black redactions on a white piece of paper.)
+So that from a wide view it looks like an organically moving heavily redacted document, powered by aliens behind each redacted word.
 
-So that from a wide view it looks like a heavily redacted document.
+When you shoot the alien, the redaction that alien is "hiding" morphs fron all black to a black outlined white placard revealing a first name of a person (in a black, serif font) (from the Epstein files).
 
-When you shoot the alien, the redaction disappears fron all black to a black outline on the white placard revealing a first name of a person (in a black, serif font (from the Epstein files).
+I have lists of names scraped from the wikipedia entry (https://en.wikipedia.org/wiki/List_of_people_named_in_the_Epstein_files) in assets/names.md
 
-Across the top of the screen, 
-* Pam Bondi scrolls by intermittently shouting "Dow 50 Thousand, Dow 50 Thousand, Dow 50 Thousand" over and over again.
-And of course she's worth 50,000 points if you hit her.
-* Ghislaine Maxwell scrolls by yelling "Pardon ME, Pardon ME, Pardon ME" over and over again.
+Space Invaders has 11 aliens on the top row, so there are 11 top row names. (see assets/names.md) these names should be in random order each level of the game.
+Then rows 2-3 are 2 x 11 (22 names) with a slightly different alien. i have 22 names picked out for this (see assets/names.md) same random placement each level of the game.
+Then 2 bottom rows (rows 4-5) are 2 x 11 aliens in 3rd shape (i have more than 22 names here, just randomize which of those names appear, and their placement, in each level of the game.)
 
+Across the top of the screen,intermittenly, 
+* a pixelated in color Pam Bondi scrolls by in her dark suit and yellow hair shouting "Dow 50, Dow 50, Dow 50" over and over again. And of course she's worth 50 points if you hit her. (there's a few sample photos of her in assets/pam*)
+* Ghislaine Maxwell in her signature butch cut and 
+orange jumpsuit scrolls by the top yelling "Pardon ME, Pardon ME, Pardon ME" over and over again. She's worth 100, 200, or 300 points (random) if you hit her. (there's a few sample photos of her in assets/ghis*)
+I'm thinking their mouths are animated (simple) like wooden puppets to match the words they are screeching.
 
+As the game levels up, the aliens with the redacted words and the woman spaceships move a bit faster.
+
+Have Stella use the Stitch mcp and/or Google AI Studio to give me a few different looks for this game and its characters
