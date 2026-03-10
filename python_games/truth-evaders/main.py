@@ -44,7 +44,7 @@ def load_assets():
     except Exception as e:
         print("Warning: Missing some bust images", e)
         
-    for s_name in ['shot', 'rip', 'march']:
+    for s_name in ['shot', 'rip', 'march', 'pam', 'ghis', 'boss_hit']:
         try:
             SOUNDS[s_name] = pygame.mixer.Sound(os.path.join(BASE_DIR, f"assets/sounds/{s_name}.wav"))
         except:
@@ -67,7 +67,9 @@ class VillainTarget:
         self.active = True
         self.score_value = 50 if self.type == "pam" else random.choice([100, 200, 300])
         self.phrase = "DOW 50!" if self.type == "pam" else "PARDON ME!"
+        if self.type in SOUNDS: SOUNDS[self.type].play()
         self.anim_timer = 0
+        self.voice_timer = 0
         self.flap_open = False
 
     def update(self):
@@ -76,8 +78,13 @@ class VillainTarget:
             self.active = False
             
         self.anim_timer += 1
-        if self.anim_timer > 15:
+        if self.anim_timer > 30:
             self.anim_timer = 0
+            
+        self.voice_timer += 1
+        if self.voice_timer >= 120:  # Re-play sound every ~2 seconds
+            if self.type in SOUNDS: SOUNDS[self.type].play()
+            self.voice_timer = 0
             self.flap_open = not self.flap_open
 
     def get_rect(self):
@@ -340,6 +347,7 @@ async def main():
     level = 1
     score = 0
     lives = 3
+    delay_timer = 0
     
     player = Player()
     bullets = []
@@ -353,9 +361,10 @@ async def main():
     alien_move_threshold = 30
     
     def init_level(lvl, reset_player=False):
-        nonlocal bullets, alien_bullets, player, aliens, bases, alien_dir, alien_speed_x, alien_move_threshold
+        nonlocal bullets, alien_bullets, player, aliens, bases, alien_dir, alien_speed_x, alien_move_threshold, villain_targets
         bullets.clear()
         alien_bullets.clear()
+        villain_targets.clear() # Clear villain targets on new level
         
         if not reset_player:
             player = Player()
@@ -409,11 +418,11 @@ async def main():
         else:
             player.x = WIDTH // 2 - player.width // 2
 
-    init_level(level)
-    
-    villain = None
+    villain_targets = [] # Changed from singular 'villain' to plural list
     villain_timer = 0
 
+    init_level(level)
+    
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -436,19 +445,31 @@ async def main():
 
         keys = pygame.key.get_pressed()
 
+        if state in ("LIFE_LOST", "LEVEL_CLEAR"):
+            delay_timer -= 1
+            if delay_timer <= 0:
+                if state == "LIFE_LOST":
+                    init_level(level, reset_player=True)
+                    state = "PLAYING"
+                elif state == "LEVEL_CLEAR":
+                    level += 1
+                    init_level(level)
+                    state = "PLAYING"
+
         if state == "PLAYING":
             player.move(keys)
             
-            villain_timer += 1
-            if villain_timer > 600 and villain is None:
-                v_type = "pam" if random.random() < 0.5 else "ghis"
-                villain = VillainTarget(v_type)
+            if not villain_targets:
+                villain_timer += 1
+                if villain_timer > 600:
+                    v_type = "pam" if random.random() < 0.5 else "ghis"
+                    villain_targets.append(VillainTarget(v_type))
+            else:
+                villain_timer = 0
             
-            if villain:
-                villain.update()
-                if not villain.active:
-                    villain = None
-                    villain_timer = 0
+            for vt in villain_targets:
+                vt.update()
+            villain_targets = [vt for vt in villain_targets if vt.active] # Filter inactive
             
             alien_move_timer += 1
             shift_down = False
@@ -489,13 +510,16 @@ async def main():
             for b in bullets:
                 b_rect = b.get_rect()
                 
-                if villain and villain.active and villain.get_rect().colliderect(b_rect):
-                    b.active = False
-                    villain.active = False
-                    score += villain.score_value
-                    if 'rip' in SOUNDS: SOUNDS['rip'].play()
-                    villain = None
-                    villain_timer = 0
+                hit_villain = False
+                for vt in villain_targets:
+                    if vt.active and b_rect.colliderect(vt.get_rect()):
+                        vt.active = False
+                        b.active = False
+                        score += vt.score_value
+                        if 'boss_hit' in SOUNDS: SOUNDS['boss_hit'].play()
+                        hit_villain = True
+                        break
+                if hit_villain:
                     continue
 
                 for a in aliens:
@@ -529,10 +553,12 @@ async def main():
                 if ab.active and ab.get_rect().colliderect(p_rect):
                     ab.active = False
                     lives -= 1
+                    if 'rip' in SOUNDS: SOUNDS['rip'].play()
                     if lives <= 0:
                         state = "GAME_OVER"
                     else:
-                        init_level(level, reset_player=True)
+                        state = "LIFE_LOST"
+                        delay_timer = FPS * 2
             
             breach = False
             for a in aliens:
@@ -550,18 +576,20 @@ async def main():
             
             if breach:
                 lives -= 1
+                if 'rip' in SOUNDS: SOUNDS['rip'].play()
                 if lives <= 0:
                     state = "GAME_OVER"
                 else:
-                    init_level(level)
+                    state = "LIFE_LOST"
+                    delay_timer = FPS * 2
 
             for a in aliens:
                 a.update()
             
             import builtins
             if not builtins.any(a.state == "ACTIVE" for a in aliens):
-                level += 1
-                init_level(level)
+                state = "LEVEL_CLEAR"
+                delay_timer = FPS * 2
 
         screen.fill(WHITE)
 
@@ -572,6 +600,11 @@ async def main():
             draw_text("GAME OVER", large_font, RED, screen, WIDTH//2, HEIGHT//3)
             draw_text(f"FINAL SCORE: {score}", font, BLACK, screen, WIDTH//2, HEIGHT//2)
             draw_text("PRESS SPACE TO RESTART", font, BLACK, screen, WIDTH//2, HEIGHT//2 + 50)
+        elif state == "LIFE_LOST":
+            draw_text("CASUALTY REGISTERED", large_font, RED, screen, WIDTH//2, HEIGHT//3)
+        elif state == "LEVEL_CLEAR":
+            draw_text("PERPS EXPOSED", large_font, BLUE, screen, WIDTH//2, HEIGHT//3)
+            draw_text(f"Get Ready for Level {level + 1}", font, BLACK, screen, WIDTH//2, HEIGHT//2)
         elif state == "PLAYING":
             player.draw(screen)
             for b in bullets: b.draw(screen)
@@ -582,8 +615,8 @@ async def main():
             for a in builtins.sorted(aliens, key=lambda al: 0 if al.state=="ACTIVE" else 1):
                 a.draw(screen)
                 
-            if villain:
-                villain.draw(screen)
+            for vt in villain_targets:
+                vt.draw(screen)
             
             draw_text(f"SCORE: {score}", font, BLACK, screen, 100, 30)
             draw_text(f"LIVES: {lives}", font, BLACK, screen, WIDTH - 100, 30)
