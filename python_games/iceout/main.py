@@ -32,18 +32,20 @@ large_font = pygame.font.Font(None, 72)
 
 IMAGES = {}
 def load_images():
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     sprites = ['paddle', 'ball', 'block_blue', 'block_purple', 'block_green',
                'fam_dad', 'fam_mom', 'fam_son', 'fam_daughter']
     for i in range(1, 5):
         sprites.append(f'villain{i}')
-
+    sprites.append('title')
         
     for spr in sprites:
         try:
-            img = pygame.image.load(f"assets/sprites/{spr}.png").convert_alpha()
+            img = pygame.image.load(os.path.join(BASE_DIR, f"assets/sprites/{spr}.png")).convert_alpha()
             IMAGES[spr] = img
         except Exception as e:
             print(f"Could not load {spr}.png:", e)
+
 
 def draw_text(text, font, color, surface, x, y):
     textobj = font.render(text, True, color)
@@ -59,27 +61,26 @@ def load_scores():
     try:
         with open(SCORES_FILE, 'r') as f:
             for line in f:
-                line = line.strip()
-                if ',' in line:
-                    parts = line.split(',', 1)
-                    try:
+                if line.strip():
+                    parts = line.strip().split(',')
+                    if len(parts) == 2:
                         entries.append((parts[0], int(parts[1])))
-                    except ValueError:
-                        pass
-                elif line.isdigit():  # legacy plain numbers
-                    entries.append(('???', int(line)))
-    except Exception:
+    except FileNotFoundError:
         pass
-    return sorted(entries, key=lambda x: x[1], reverse=True)[:10]
+    entries.sort(key=lambda x: x[1], reverse=True)
+    return entries
 
-def is_top_10(score):
-    scores = load_scores()
-    return len(scores) < 10 or score > scores[-1][1]
+def is_high_score(score):
+    if score == 0: return False
+    entries = load_scores()
+    if len(entries) < 5: return True
+    return score > entries[-1][1]
 
 def save_entry(initials, score):
     entries = load_scores()
-    entries.append((initials[:3].upper(), score))
-    entries = sorted(entries, key=lambda x: x[1], reverse=True)[:10]
+    entries.append((initials, score))
+    entries.sort(key=lambda x: x[1], reverse=True)
+    entries = entries[:5]
     try:
         with open(SCORES_FILE, 'w') as f:
             for ini, s in entries:
@@ -88,15 +89,10 @@ def save_entry(initials, score):
         print("Could not save score:", e)
 
 def handle_initials_input(event, current_initials, score):
-    """
-    State logic for ENTER_INITIALS screen.
-    Returns (new_initials, state_changed)
-    """
     if event.key == pygame.K_BACKSPACE:
         return current_initials[:-1], False
         
     elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
-        # BUG REPLICATION TARGET: Why does this freeze?
         if len(current_initials) > 0:
             try:
                 save_entry(current_initials.ljust(3, '_')[:3], score)
@@ -118,6 +114,37 @@ def handle_initials_input(event, current_initials, score):
             return current_initials + ch, False
             
     return current_initials, False
+
+STORY_TEXT = {
+    1: "Free the notorious 5-year old criminal LIAM. Watch out for the overdressed (on your taxpayer dime) mall cop.",
+    2: "Save the zip-tied 14 year old girl SUEHEY from the Wilder Idaho raid, while the Gestapo assures \"We never zip-tied a minor.\"",
+    3: "Save KSENIIA, one of our brightest immigrant scientists detained for 2 years now, from one of our dimmest bulbs (who'll get fired from 3 more jobs in that time.)",
+    4: "Save the hard working American patriot from the convicted felon & menacing infiltrator to our American way. If you don't know which one is which, you might be in a cult.",
+    "win": "Don't let the bad guys win the long game. Contact your state leaders and let them know this isn't right, at Congress.gov."
+}
+
+def draw_text_wrapped(text, font, color, surface, x, y, max_width):
+    words = text.split(' ')
+    lines = []
+    current_line = []
+    
+    for word in words:
+        current_line.append(word)
+        test_line = ' '.join(current_line)
+        size = font.size(test_line)
+        if size[0] > max_width:
+            current_line.pop()
+            lines.append(' '.join(current_line))
+            current_line = [word]
+    lines.append(' '.join(current_line))
+    
+    y_offset = 0
+    for line in lines:
+        textobj = font.render(line, True, color)
+        textrect = textobj.get_rect(center=(x, y + y_offset))
+        surface.blit(textobj, textrect)
+        y_offset += font.get_linesize()
+
 
 
 def draw_zone_text(surface, text, font_size, alpha, y):
@@ -354,6 +381,7 @@ async def main():
     villain = None
     villain_timer = 0
     current_initials = ""
+    space_cooldown = 0
 
     def init_level(lvl):
         nonlocal blocks, family_member, villain, villain_timer, paddle, ball
@@ -378,8 +406,10 @@ async def main():
         ball.y = paddle.y - ball.radius - 1
 
     init_level(level)
-
     while True:
+        if space_cooldown > 0:
+            space_cooldown -= 1
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
@@ -391,6 +421,7 @@ async def main():
                     if confirm:
                         level = 1; score = 0; lives = 3
                         init_level(level); state = "START"
+                        space_cooldown = 15
                     continue # BUG FIX: skip the rest of the handlers so we don't fall through to ESC logic
 
                 # --- All other game states ---
@@ -412,33 +443,27 @@ async def main():
                     init_level(level)
                     state = "PLAYING"
                     ball.active = True
-                elif state == "START" and event.key == pygame.K_SPACE:
+                elif state == "START" and event.key == pygame.K_SPACE and space_cooldown == 0:
                     state = "PLAYING"
                     ball.active = True
                 elif state == "PLAYING" and event.key == pygame.K_SPACE and not ball.active:
                     ball.active = True
-                elif state == "GAME_OVER" and event.key == pygame.K_SPACE:
-                    if is_top_10(score):
+                elif state == "GAME_OVER" and event.key == pygame.K_SPACE and space_cooldown == 0:
+                    if is_high_score(score):
                         state = "ENTER_INITIALS"
                         current_initials = ""
                     else:
                         level = 1; score = 0; lives = 3
                         init_level(level); state = "START"
-                elif state == "LEVEL_CLEARED" and event.key == pygame.K_SPACE:
-                    if level < 4:
-                        level += 1
-                        init_level(level)
-                        state = "START"
-                    else:
-                        state = "GAME_WON"
-                elif state == "GAME_WON" and event.key == pygame.K_SPACE:
-                    if is_top_10(score):
+                        space_cooldown = 15
+                elif state == "GAME_WON" and event.key == pygame.K_SPACE and space_cooldown == 0:
+                    if is_high_score(score):
                         state = "ENTER_INITIALS"
                         current_initials = ""
                     else:
                         level = 1; score = 0; lives = 3
                         init_level(level); state = "START"
-
+                        space_cooldown = 15
 
         keys = pygame.key.get_pressed()
 
@@ -514,43 +539,55 @@ async def main():
 
             family_member.update(blocks)
 
-            # Level clears when all blocks are gone
+            # All blocks gone -> make family fall, freeze ball, and await conclusion
             if not any(b.active for b in blocks):
-                state = "LEVEL_CLEARED"
+                family_member.falling = True
+                ball.active = False
+                
+                if family_member.rescued:
+                    if level < 4:
+                        level += 1
+                        init_level(level)
+                        state = "START"
+                        space_cooldown = 15
+                    else:
+                        state = "GAME_WON"
+                        space_cooldown = 15
 
-            # Check dead ball
-            if ball.y > HEIGHT:
+            # Check dead ball (only if not already won)
+            if ball.y > HEIGHT and any(b.active for b in blocks):
                 lives -= 1
                 if lives <= 0:
                     state = "GAME_OVER"
                 else:
                     ball.active = False
 
-            # All blocks gone → make family member fall if still walking
-            if not any(b.active for b in blocks):
-                family_member.falling = True
-
         screen.fill(BLACK)
 
         if state == "START":
             if 'title' in IMAGES:
                 t_img = IMAGES['title']
-                t_rect = t_img.get_rect(center=(WIDTH//2, HEIGHT//3))
+                t_rect = t_img.get_rect(center=(WIDTH//2, HEIGHT//3 - 50))
                 screen.blit(t_img, t_rect)
             else:
-                draw_text("ICE-OUT", large_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//3)
+                draw_text("ICE-OUT", large_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//3 - 50)
             
-            draw_text("PRESS SPACE TO START", font, NEON_PINK, screen, WIDTH//2, HEIGHT//2 + 80)
-            draw_text(f"Level {level}", font, WHITE, screen, WIDTH//2, HEIGHT//2 + 130)
+            draw_text("PRESS SPACE TO START", font, NEON_PINK, screen, WIDTH//2, HEIGHT//2)
+            draw_text(f"Level {level}", font, WHITE, screen, WIDTH//2, HEIGHT//2 + 40)
+            
+            # Story prompt
+            small_text_font = pygame.font.Font(None, 24)
+            draw_text_wrapped(STORY_TEXT[level], small_text_font, WHITE, screen, WIDTH//2, HEIGHT//2 + 80, WIDTH - 100)
+            
             # High scores
             hi_font = pygame.font.Font(None, 26)
             scores = load_scores()
             if scores:
-                draw_text("HIGH SCORES", hi_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2 + 185)
+                draw_text("HIGH SCORES", hi_font, NEON_BLUE, screen, WIDTH//2, HEIGHT - 180)
                 for i, s in enumerate(scores[:5]):
-                    draw_text(f"{i+1}. {s:,}", hi_font, (180,180,180), screen, WIDTH//2, HEIGHT//2 + 210 + i*22)
+                    draw_text(f"{i+1}. {s[0]} {s[1]:,}", hi_font, (180,180,180), screen, WIDTH//2, HEIGHT - 150 + i*22)
             
-        elif state in ["PLAYING", "LEVEL_CLEARED", "GAME_OVER", "GAME_WON", "PAUSED"]:
+        elif state in ["PLAYING", "GAME_OVER", "GAME_WON", "PAUSED"]:
             # Background zone label above bricks (drawn first, behind sprites)
             draw_zone_text(screen, '"CRIMINAL" CONFINEMENT', 46, 28, 130)
             paddle.draw(screen)
@@ -567,13 +604,7 @@ async def main():
             small_font = pygame.font.Font(None, 22)
             draw_text("ESC: PAUSE", small_font, (120, 120, 120), screen, WIDTH - 58, HEIGHT - 15)
 
-            if state == "LEVEL_CLEARED":
-                if level < 4:
-                    draw_text("LEVEL CLEARED!", large_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2)
-                    draw_text("PRESS SPACE FOR NEXT LEVEL", font, NEON_PINK, screen, WIDTH//2, HEIGHT//2 + 50)
-                else:
-                    draw_text("YOU WIN!", large_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2)
-            elif state == "GAME_OVER":
+            if state == "GAME_OVER":
                 draw_text("GAME OVER", large_font, NEON_RED, screen, WIDTH//2, HEIGHT//2)
                 draw_text("PRESS SPACE TO RESTART", font, NEON_PINK, screen, WIDTH//2, HEIGHT//2 + 50)
                 hi_font = pygame.font.Font(None, 26)
@@ -581,12 +612,14 @@ async def main():
                 if entries:
                     draw_text(f"BEST: {entries[0][0]}  {entries[0][1]:,}", hi_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2 + 90)
             elif state == "GAME_WON":
-                draw_text("DEMOCRACY SAVED!", large_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2)
-                draw_text("PRESS SPACE TO RESTART", font, NEON_PINK, screen, WIDTH//2, HEIGHT//2 + 50)
+                draw_text("DEMOCRACY SAVED!", large_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2 - 50)
+                draw_text("PRESS SPACE TO ENTER/SEE HIGH SCORES", font, NEON_PINK, screen, WIDTH//2, HEIGHT//2)
+                small_text_font = pygame.font.Font(None, 24)
+                draw_text_wrapped(STORY_TEXT["win"], small_text_font, WHITE, screen, WIDTH//2, HEIGHT//2 + 50, WIDTH - 100)
                 hi_font = pygame.font.Font(None, 26)
                 entries = load_scores()
                 if entries:
-                    draw_text(f"BEST: {entries[0][0]}  {entries[0][1]:,}", hi_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2 + 90)
+                    draw_text(f"BEST: {entries[0][0]}  {entries[0][1]:,}", hi_font, NEON_BLUE, screen, WIDTH//2, HEIGHT//2 + 150)
 
         # Pause overlay draws on top of whatever is rendered
         if state == "PAUSED":
