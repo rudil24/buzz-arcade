@@ -19,16 +19,13 @@ PAPER_TEXTURE_COLOR = (240, 235, 225)
 
 # --- Initialize Pygame ---
 pygame.init()
-pygame.mixer.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Truth Evaders")
 font = pygame.font.Font(None, 36)
 large_font = pygame.font.Font(None, 72)
-# Tiny, bold font for the names (rendered natively)
-try:
-    name_font = pygame.font.SysFont('arial', 11, bold=True)
-except:
-    name_font = pygame.font.SysFont('sans-serif', 11, bold=True)
+# Bold font for the names (rendered natively)
+name_font = pygame.font.Font(None, 18)
+name_font.set_bold(True)
 
 # --- Asset Dictionaries ---
 IMAGES = {}
@@ -54,6 +51,34 @@ def draw_text(text, _font, color, surface, x, y):
     textobj = _font.render(text, True, color)
     textrect = textobj.get_rect(center=(x, y))
     surface.blit(textobj, textrect)
+
+def draw_spacebar_icon(surface, cx, cy, w=40, h=16, color=(200,200,200)):
+    """Draw the international spacebar symbol (U-bracket) centred at cx,cy."""
+    thick = 4
+    # Bottom bar
+    pygame.draw.rect(surface, color, (cx - w//2, cy + h//2 - thick, w, thick))
+    # Left leg
+    pygame.draw.rect(surface, color, (cx - w//2, cy - h//2, thick, h))
+    # Right leg
+    pygame.draw.rect(surface, color, (cx + w//2 - thick, cy - h//2, thick, h))
+
+def draw_pause_overlay(surface, font, large_font):
+    # Semi-transparent dark overlay
+    overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+    overlay.fill((0, 0, 0, 180))
+    surface.blit(overlay, (0, 0))
+    # Dialog box
+    bw, bh = 400, 200
+    bx, by = (WIDTH - bw)//2, (HEIGHT - bh)//2
+    pygame.draw.rect(surface, (20, 30, 60), (bx, by, bw, bh), border_radius=12)
+    pygame.draw.rect(surface, BLUE, (bx, by, bw, bh), width=2, border_radius=12)
+    draw_text("BACK TO CONCOURSE?", font, WHITE, surface, WIDTH//2, by + 45)
+    # ESC row
+    esc_font = pygame.font.Font(None, 28)
+    draw_text("ESC  ·  QUIT", esc_font, RED, surface, WIDTH//2, by + 100)
+    # Spacebar icon + CONTINUE
+    draw_spacebar_icon(surface, WIDTH//2 - 60, by + 148)
+    draw_text("CONTINUE", esc_font, BLUE, surface, WIDTH//2 + 30, by + 148)
 
 class VillainTarget:
     def __init__(self, v_type):
@@ -121,7 +146,7 @@ def load_names():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     try:
         with open(os.path.join(BASE_DIR, "assets/names.md"), "r") as f:
-            current_section = None
+            current_section = ""
             for line in f:
                 line = line.strip()
                 if not line: continue
@@ -133,7 +158,7 @@ def load_names():
                 elif "Rows 4-5" in line and line.startswith("#"):
                     current_section = "bot"
                 elif not line.startswith("#"):
-                    if current_section:
+                    if current_section in names:
                         names[current_section].append(line)
     except Exception as e:
         print("Could not load names.md", e)
@@ -236,7 +261,7 @@ class Player:
         self.speed = 6
 
     def get_rect(self):
-        return pygame.Rect(self.x, self.y, self.width, self.height)
+        return pygame.Rect(int(self.x), int(self.y), self.width, self.height)
 
     def move(self, keys):
         if keys[pygame.K_LEFT] and self.x > 0:
@@ -267,7 +292,7 @@ class Bullet:
         self.active = True
 
     def get_rect(self):
-        return pygame.Rect(self.x - self.radius, self.y - self.radius, self.radius*2, self.radius*2)
+        return pygame.Rect(int(self.x - self.radius), int(self.y - self.radius), self.radius*2, self.radius*2)
 
     def move(self):
         self.y -= self.speed
@@ -297,7 +322,7 @@ class Alien:
         pass
 
     def get_rect(self):
-        return pygame.Rect(self.x, self.y, self.width, self.height)
+        return pygame.Rect(int(self.x), int(self.y), self.width, self.height)
 
     def draw(self, surface):
         if not self.active: return
@@ -338,6 +363,69 @@ class Alien:
 
 
 # --- MAIN LOOP ---
+SCORES_FILE = "truth-evaders-scores.txt"
+ALLOWED_INITIALS = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?&')
+
+def load_scores():
+    entries = []
+    try:
+        with open(SCORES_FILE, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if ',' in line:
+                    parts = line.split(',', 1)
+                    try:
+                        entries.append((parts[0], int(parts[1])))
+                    except ValueError:
+                        pass
+                elif line.isdigit():
+                    entries.append(('???', int(line)))
+    except Exception:
+        pass
+    return sorted(entries, key=lambda x: x[1], reverse=True)[:10]
+
+def is_top_10(score):
+    scores = load_scores()
+    return len(scores) < 10 or score > scores[-1][1]
+
+def save_entry(initials, score):
+    entries = load_scores()
+    entries.append((initials[:3].upper(), score))
+    entries = sorted(entries, key=lambda x: x[1], reverse=True)[:10]
+    try:
+        with open(SCORES_FILE, 'w') as f:
+            for ini, s in entries:
+                f.write(f"{ini},{s}\n")
+    except Exception as e:
+        print("Could not save score:", e)
+
+def handle_initials_input(event, current_initials, score):
+    if event.key == pygame.K_BACKSPACE:
+        return current_initials[:-1], False
+        
+    elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER, pygame.K_SPACE):
+        if len(current_initials) > 0:
+            try:
+                save_entry(current_initials.ljust(3, '_')[:3], score)
+            except Exception:
+                pass
+            return current_initials, True
+            
+    elif event.key == pygame.K_ESCAPE:
+        if len(current_initials) > 0:
+            try:
+                save_entry(current_initials.ljust(3, '_')[:3], score)
+            except Exception:
+                pass
+            return current_initials, True
+            
+    else:
+        ch = pygame.key.name(event.key).upper()
+        if len(ch) == 1 and ch in ALLOWED_INITIALS and len(current_initials) < 3:
+            return current_initials + ch, False
+            
+    return current_initials, False
+
 async def main():
     load_assets()
     names_db = load_names()
@@ -417,19 +505,50 @@ async def main():
                         bases.append(BaseBlock(base_x + c * bw, base_y + r * bh))
         else:
             player.x = WIDTH // 2 - player.width // 2
+            # Lift aliens up to 150px away from bases to prevent immediate re-breach
+            active_aliens = [al for al in aliens if al.state == "ACTIVE"]
+            if active_aliens:
+                min_y = min(al.y for al in active_aliens)
+                lift_amount = min(150, max(0, min_y - 150))
+                for a in aliens:
+                    a.y -= lift_amount
 
     villain_targets = [] # Changed from singular 'villain' to plural list
     villain_timer = 0
+    current_initials = ""
 
     init_level(level)
     
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                try:
+                    import platform
+                    platform.window.parent.postMessage('returnToConcourse', '*')
+                except Exception:
+                    pass
                 sys.exit()
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    sys.exit()
+                if state == "ENTER_INITIALS":
+                    current_initials, confirm = handle_initials_input(event, current_initials, score)
+                    if confirm:
+                        level = 1
+                        score = 0
+                        lives = 3
+                        init_level(level)
+                        state = "START"
+                elif state == "PLAYING" and event.key == pygame.K_ESCAPE:
+                    state = "PAUSED"
+                elif state == "PAUSED":
+                    if event.key == pygame.K_SPACE:
+                        state = "PLAYING"
+                    elif event.key == pygame.K_ESCAPE:
+                        try:
+                            import platform
+                            platform.window.parent.postMessage('returnToConcourse', '*')
+                        except Exception:
+                            pass
+                        sys.exit()
                 elif state == "START" and event.key == pygame.K_SPACE:
                     state = "PLAYING"
                 elif state == "GAME_OVER" and event.key == pygame.K_SPACE:
@@ -449,8 +568,15 @@ async def main():
             delay_timer -= 1
             if delay_timer <= 0:
                 if state == "LIFE_LOST":
-                    init_level(level, reset_player=True)
-                    state = "PLAYING"
+                    if lives <= 0:
+                        if is_top_10(score):
+                            state = "ENTER_INITIALS"
+                            current_initials = ""
+                        else:
+                            state = "GAME_OVER"
+                    else:
+                        init_level(level, reset_player=True)
+                        state = "PLAYING"
                 elif state == "LEVEL_CLEAR":
                     level += 1
                     init_level(level)
@@ -554,11 +680,8 @@ async def main():
                     ab.active = False
                     lives -= 1
                     if 'rip' in SOUNDS: SOUNDS['rip'].play()
-                    if lives <= 0:
-                        state = "GAME_OVER"
-                    else:
-                        state = "LIFE_LOST"
-                        delay_timer = FPS * 2
+                    state = "LIFE_LOST"
+                    delay_timer = FPS * 2
             
             breach = False
             for a in aliens:
@@ -577,11 +700,8 @@ async def main():
             if breach:
                 lives -= 1
                 if 'rip' in SOUNDS: SOUNDS['rip'].play()
-                if lives <= 0:
-                    state = "GAME_OVER"
-                else:
-                    state = "LIFE_LOST"
-                    delay_timer = FPS * 2
+                state = "LIFE_LOST"
+                delay_timer = FPS * 2
 
             for a in aliens:
                 a.update()
@@ -596,6 +716,9 @@ async def main():
         if state == "START":
             draw_text("TRUTH EVADERS", large_font, BLACK, screen, WIDTH//2, HEIGHT//3)
             draw_text("PRESS SPACE TO START", font, BLACK, screen, WIDTH//2, HEIGHT//2)
+            entries = load_scores()
+            if entries:
+                draw_text(f"BEST: {entries[0][0]}  {entries[0][1]:,}", font, BLUE, screen, WIDTH//2, HEIGHT//2 + 50)
         elif state == "GAME_OVER":
             draw_text("GAME OVER", large_font, RED, screen, WIDTH//2, HEIGHT//3)
             draw_text(f"FINAL SCORE: {score}", font, BLACK, screen, WIDTH//2, HEIGHT//2)
@@ -605,7 +728,7 @@ async def main():
         elif state == "LEVEL_CLEAR":
             draw_text("PERPS EXPOSED", large_font, BLUE, screen, WIDTH//2, HEIGHT//3)
             draw_text(f"Get Ready for Level {level + 1}", font, BLACK, screen, WIDTH//2, HEIGHT//2)
-        elif state == "PLAYING":
+        elif state == "PLAYING" or state == "PAUSED":
             player.draw(screen)
             for b in bullets: b.draw(screen)
             for ab in alien_bullets: ab.draw(screen)
@@ -621,6 +744,29 @@ async def main():
             draw_text(f"SCORE: {score}", font, BLACK, screen, 100, 30)
             draw_text(f"LIVES: {lives}", font, BLACK, screen, WIDTH - 100, 30)
             draw_text(f"LEVEL: {level}", font, BLACK, screen, WIDTH//2, 30)
+
+        if state == "ENTER_INITIALS":
+            overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            overlay.fill((255, 255, 255, 200))
+            screen.blit(overlay, (0, 0))
+            bw, bh = 420, 240
+            bx, by = (WIDTH-bw)//2, (HEIGHT-bh)//2
+            pygame.draw.rect(screen, WHITE, (bx,by,bw,bh), border_radius=12)
+            pygame.draw.rect(screen, BLACK, (bx,by,bw,bh), width=4, border_radius=12)
+            draw_text("NEW HIGH SCORE!", large_font, BLACK, screen, WIDTH//2, by+40)
+            draw_text(f"{score:,}", large_font, BLUE, screen, WIDTH//2, by+85)
+            draw_text("ENTER INITIALS:", font, BLACK, screen, WIDTH//2, by+140)
+            
+            ini_font = pygame.font.Font(None, 72)
+            for i in range(3):
+                cx = WIDTH//2 - 60 + i*44
+                ch = current_initials[i] if i < len(current_initials) else '_'
+                clr = BLACK if i < len(current_initials) else (150,150,150)
+                draw_text(ch, ini_font, clr, screen, cx, by+185)
+            draw_text("A-Z  0-9  !  ?  &     ENTER to confirm", pygame.font.Font(None,22), (100,100,100), screen, WIDTH//2, by+225)
+
+        if state == "PAUSED":
+            draw_pause_overlay(screen, font, large_font)
 
         pygame.display.flip()
         await asyncio.sleep(0)

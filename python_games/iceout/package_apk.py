@@ -1,14 +1,24 @@
 import zipfile
 import os
 import shutil
+from pathlib import Path
+
+# Fix relative execution paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TARGET_DIR = os.path.join(BASE_DIR, 'build', 'web')
+
+if not os.path.exists(TARGET_DIR):
+    os.makedirs(TARGET_DIR)
 
 # Remove old files
-try: os.remove('build/web/iceout.apk')
-except: pass
-try: os.remove('build/web/iceout.zip')
-except: pass
+try: os.remove(os.path.join(TARGET_DIR, 'iceout.apk'))
+except OSError: pass
+try: os.remove(os.path.join(TARGET_DIR, 'iceout.zip'))
+except OSError: pass
 
-with zipfile.ZipFile('build/web/iceout.apk', 'w', zipfile.ZIP_DEFLATED) as zipf:
+os.chdir(BASE_DIR)
+
+with zipfile.ZipFile(os.path.join(TARGET_DIR, 'iceout.apk'), 'w', zipfile.ZIP_DEFLATED) as zipf:
     zipf.write('main.py', 'main.py')
     for root, dirs, files in os.walk('assets'):
         for file in files:

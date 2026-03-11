@@ -25,25 +25,47 @@ function App() {
         {!currentGame ? (
           <div className="game-selector">
             <h2 className="glow-text">Select a Game</h2>
-            <div className="game-cabinet" onClick={() => setCurrentGame('iceout')}>
-              <div className="screen-preview">
-                <div className="attract-mode">
-                  <h3>ICE-OUT</h3>
-                  <p>Break the Ice!</p>
-                  <div className="demo-blocks">
-                    <div className="block"></div>
-                    <div className="block"></div>
-                    <div className="block"></div>
-                    <div className="block" style={{ borderColor: 'var(--neon-pink)', boxShadow: '0 0 5px var(--neon-pink)' }}></div>
-                    <div className="block"></div>
-                  </div>
-                  <div style={{ fontSize: '0.6rem', marginTop: '10px', color: 'gray' }}>
-                    Latino Family Rescue Mission
+            <div className="cabinets-container" style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <div className="game-cabinet" onClick={() => setCurrentGame('iceout')}>
+                <div className="screen-preview">
+                  <div className="attract-mode">
+                    <h3>ICE-OUT</h3>
+                    <p>Break the Ice!</p>
+                    <div className="demo-blocks">
+                      <div className="block"></div>
+                      <div className="block"></div>
+                      <div className="block"></div>
+                      <div className="block" style={{ borderColor: 'var(--neon-pink)', boxShadow: '0 0 5px var(--neon-pink)' }}></div>
+                      <div className="block"></div>
+                    </div>
+                    <div style={{ fontSize: '0.6rem', marginTop: '10px', color: 'gray' }}>
+                      Latino Family Rescue Mission
+                    </div>
                   </div>
                 </div>
+                <div className="cabinet-details">
+                  <button className="play-btn">INSERT COIN</button>
+                </div>
               </div>
-              <div className="cabinet-details">
-                <button className="play-btn">INSERT COIN</button>
+
+              <div className="game-cabinet" onClick={() => setCurrentGame('truth-evaders')}>
+                <div className="screen-preview">
+                  <div className="attract-mode">
+                    <h3>TRUTH EVADERS</h3>
+                    <p>Expose the List!</p>
+                    <div className="demo-blocks">
+                      <div className="block" style={{ borderColor: 'var(--neon-blue)', boxShadow: '0 0 5px var(--neon-blue)' }}></div>
+                      <div className="block" style={{ borderColor: 'var(--neon-blue)', boxShadow: '0 0 5px var(--neon-blue)' }}></div>
+                      <div className="block" style={{ borderColor: 'var(--neon-blue)', boxShadow: '0 0 5px var(--neon-blue)' }}></div>
+                    </div>
+                    <div style={{ fontSize: '0.6rem', marginTop: '10px', color: 'gray' }}>
+                      8-bit Alien Shooter
+                    </div>
+                  </div>
+                </div>
+                <div className="cabinet-details">
+                  <button className="play-btn">INSERT COIN</button>
+                </div>
               </div>
             </div>
           </div>
@@ -53,10 +75,10 @@ function App() {
               ◀ BACK TO CONCOURSE
             </button>
             <div className="crt-screen">
-              {currentGame === 'iceout' && (
+              {currentGame && (
                 <iframe
-                  title="IceOut"
-                  src={`${import.meta.env.BASE_URL}games/iceout/index.html`}
+                  title={currentGame}
+                  src={`${import.meta.env.BASE_URL}games/${currentGame}/index.html`}
                   className="game-frame"
                   onLoad={(e) => {
                     // Pygbag initializes its canvas size based on the window. 

@@ -16,6 +16,8 @@
 - **Placard Mechanics**: Alien objects read from `assets/names.md`. Upon taking a hit from a player bullet, they drop their black redaction bar and reveal an Epstein list name in crisp, bold sans-serif font, moving alongside the pack indefinitely.
 - **Combat Physics**: Enforced a 1-bullet-max constraint on the player. Integrated random enemy return fire logic.
 - **Environment**: Added 4 destructible bases for the player to hide under. Resolved path loading logic so the `assets/` can be fetched accurately regardless of the terminal's working directory.
+- **Audio Output**: Created a procedural python synthesizer to generate retro square/sine wave sound effects (`shot`, `rip`, `march`, `boss_hit`). Piped macOS's native `say` TTS engine through pitch-modulation flags to generate custom voices for the villain taunts. Introduced rigid state pacing delays to let the audio breathe.
+- **End of Game**: Migrated persistent High Score memory architecture via `truth-evaders-scores.txt` and an `ENTER_INITIALS` state overlay loop. Fixed a cascading death bug by lifting the alien formation 150px away from the player's base upon respawning a new life.
 
 ## Deployment & Retro
 

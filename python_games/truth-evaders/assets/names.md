@@ -1,4 +1,4 @@
-# Top Row (11 arranged in random order))
+## Top Row (11 arranged in random order))
 
 Andrew
 Donald
@@ -13,7 +13,7 @@ Sarah
 Steve
 Woody
 
-# Rows 2-3 (22 arranged randomly on screen, 11 per row)
+## Rows 2-3 (22 arranged randomly on screen, 11 per row)
 
 Alan
 Annabelle
@@ -38,7 +38,7 @@ RFK Jr
 Sergey
 Vitaly
 
-# Rows 4-5 (>22, rotating in and out per game level, for 22 total each level.)
+## Rows 4-5 (>22, rotating in and out per game level, for 22 total each level.)
 
 Alberto
 Ben
@@ -64,7 +64,6 @@ Nathan
 Nicole
 Nick
 Reid
-Soon-Yi
 Stephen
 Steve
 Steven
