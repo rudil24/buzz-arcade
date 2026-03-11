@@ -15,8 +15,10 @@ This project adheres to the OPST Kickoff framework. Please review the foundation
 
 - [Product Requirements Document (PRD)](./docs/PRD.md)
 - [Design Document & Visual Mockups](./docs/Design.md)
-- [Development Task List](./docs/TASK_LIST.md)
-- [Team Retro](./docs/TEAM_RETRO.md)
+- [Development Task List](./docsTASK_LIST.md)
+- [Team Retro 1 iceout](./.agents/retros/2026-02-26-iceout.md)
+- [Team Retro 2 truth-evaders](./.agents/retros/2026-03-11-truth-evaders.md)
+- Team Learnings [iceout](./.agents/learnings/2026-02-26-iceout.md) [truth-evaders](./.agents/learnings/2026-03-11-truth-evaders.md)
 
 ## Development Setup
 
