@@ -56,15 +56,27 @@ SCORES_FILE = "highscores.txt"
 ALLOWED_INITIALS = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?&')
 
 def load_scores():
-    """Returns list of (initials, score) tuples, sorted high-first."""
+    """Returns list of [initials, score] lists, sorted high-first."""
     entries = []
+    
+    # Attempt WebAssembly localStorage first
+    try:
+        import platform
+        import json
+        data = platform.window.localStorage.getItem('iceout_scores')
+        if data:
+            parsed = json.loads(data)
+            return [[str(x[0]), int(x[1])] for x in parsed]
+    except Exception:
+        pass
+        
     try:
         with open(SCORES_FILE, 'r') as f:
             for line in f:
                 if line.strip():
                     parts = line.strip().split(',')
                     if len(parts) == 2:
-                        entries.append((parts[0], int(parts[1])))
+                        entries.append([parts[0], int(parts[1])])
     except FileNotFoundError:
         pass
     entries.sort(key=lambda x: x[1], reverse=True)
@@ -78,9 +90,18 @@ def is_high_score(score):
 
 def save_entry(initials, score):
     entries = load_scores()
-    entries.append((initials, score))
+    entries.append([initials, score])
     entries.sort(key=lambda x: x[1], reverse=True)
     entries = entries[:5]
+    
+    # Attempt WebAssembly localStorage override
+    try:
+        import platform
+        import json
+        platform.window.localStorage.setItem('iceout_scores', json.dumps(entries))
+    except Exception:
+        pass
+        
     try:
         with open(SCORES_FILE, 'w') as f:
             for ini, s in entries:
@@ -449,14 +470,13 @@ async def main():
                 elif state == "PLAYING" and event.key == pygame.K_SPACE and not ball.active:
                     ball.active = True
                 elif state == "GAME_OVER" and event.key == pygame.K_SPACE and space_cooldown == 0:
-                    if is_high_score(score):
-                        state = "ENTER_INITIALS"
-                        current_initials = ""
-                    else:
-                        level = 1; score = 0; lives = 3
-                        init_level(level); state = "START"
-                        space_cooldown = 15
+                    level = 1; score = 0; lives = 3
+                    init_level(level); state = "START"
+                    space_cooldown = 15
                 elif state == "GAME_WON" and event.key == pygame.K_SPACE and space_cooldown == 0:
+                    level = 1; score = 0; lives = 3
+                    init_level(level); state = "START"
+                    space_cooldown = 15
                     if is_high_score(score):
                         state = "ENTER_INITIALS"
                         current_initials = ""
@@ -551,14 +571,22 @@ async def main():
                         state = "START"
                         space_cooldown = 15
                     else:
-                        state = "GAME_WON"
+                        if is_high_score(score):
+                            state = "ENTER_INITIALS"
+                            current_initials = ""
+                        else:
+                            state = "GAME_WON"
                         space_cooldown = 15
 
             # Check dead ball (only if not already won)
             if ball.y > HEIGHT and any(b.active for b in blocks):
                 lives -= 1
                 if lives <= 0:
-                    state = "GAME_OVER"
+                    if is_high_score(score):
+                        state = "ENTER_INITIALS"
+                        current_initials = ""
+                    else:
+                        state = "GAME_OVER"
                 else:
                     ball.active = False
 

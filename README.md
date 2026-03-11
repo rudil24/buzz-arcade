@@ -1,7 +1,7 @@
 # Buzz's All-American Arcade
 
 A high-quality web arcade wrapper built with React, styled in "Democracy + Retro 80s Synthwave," and hosting custom Python/WASM arcade games.
-Plus, the first game in the series, "Ice Out", is now available!
+Currently hosting the first two games in the series: "Ice Out" and "Truth Evaders"!
 
 > This project serves as a portfolio piece showcasing frontend architecture, WebAssembly game integration, and retro design principles.
 

@@ -368,6 +368,19 @@ ALLOWED_INITIALS = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!?&')
 
 def load_scores():
     entries = []
+    # Attempt WebAssembly localStorage first
+    try:
+        import platform
+        import json
+        data = platform.window.localStorage.getItem('truth_evaders_scores')
+        if data:
+            parsed = json.loads(data)
+            # Ensure proper format: [[initials, score], ...]
+            return [[str(x[0]), int(x[1])] for x in parsed]
+    except Exception:
+        pass
+
+    # Fallback to flat file
     try:
         with open(SCORES_FILE, 'r') as f:
             for line in f:
@@ -375,11 +388,11 @@ def load_scores():
                 if ',' in line:
                     parts = line.split(',', 1)
                     try:
-                        entries.append((parts[0], int(parts[1])))
+                        entries.append([parts[0], int(parts[1])])
                     except ValueError:
                         pass
                 elif line.isdigit():
-                    entries.append(('???', int(line)))
+                    entries.append(['???', int(line)])
     except Exception:
         pass
     return sorted(entries, key=lambda x: x[1], reverse=True)[:10]
@@ -390,8 +403,18 @@ def is_top_10(score):
 
 def save_entry(initials, score):
     entries = load_scores()
-    entries.append((initials[:3].upper(), score))
+    # Tuples become lists in JSON, so standardizing on lists
+    entries.append([initials[:3].upper(), score])
     entries = sorted(entries, key=lambda x: x[1], reverse=True)[:10]
+    
+    # Attempt WebAssembly localStorage format override
+    try:
+        import platform
+        import json
+        platform.window.localStorage.setItem('truth_evaders_scores', json.dumps(entries))
+    except Exception:
+        pass
+
     try:
         with open(SCORES_FILE, 'w') as f:
             for ini, s in entries:
@@ -718,7 +741,10 @@ async def main():
             draw_text("PRESS SPACE TO START", font, BLACK, screen, WIDTH//2, HEIGHT//2)
             entries = load_scores()
             if entries:
-                draw_text(f"BEST: {entries[0][0]}  {entries[0][1]:,}", font, BLUE, screen, WIDTH//2, HEIGHT//2 + 50)
+                draw_text("HIGH SCORES", font, BLUE, screen, WIDTH//2, HEIGHT//2 + 50)
+                hi_font = pygame.font.Font(None, 24)
+                for i, s in enumerate(entries[:5]):
+                    draw_text(f"{i+1}. {s[0]} {s[1]:,}", hi_font, (100,100,100), screen, WIDTH//2, HEIGHT//2 + 80 + (i*25))
         elif state == "GAME_OVER":
             draw_text("GAME OVER", large_font, RED, screen, WIDTH//2, HEIGHT//3)
             draw_text(f"FINAL SCORE: {score}", font, BLACK, screen, WIDTH//2, HEIGHT//2)
