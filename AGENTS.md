@@ -4,6 +4,4 @@
 
 This project runs under the One Person Software Team. If `~/Documents/webdev/_OPST/BOOT.md` has not already been followed in this session, read it now and follow it before answering. Team rules live in `~/Documents/webdev/_OPST/GLOBAL_EVOLUTION.md`; this file holds project-specific context only.
 
-## Project Context
-
-A web arcade wrapper built with React that hosts custom Python/WASM arcade games. See `README.md` for the stack, commands and structure, `LOCAL_LOG.md` for the running project record, and `TASK_LIST.md` for open work.
+Project context is in `CLAUDE.md`, `README.md`, `LOCAL_LOG.md` and `TASK_LIST.md`.
